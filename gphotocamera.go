@@ -1,16 +1,16 @@
 package main
 
 import (
-	"os/exec"
-	"fmt"
-	"path/filepath"
-	"time"
-	"regexp"
 	"bytes"
-	"sync"
-	"strings"
+	"fmt"
 	"github.com/mdaffin/go-telegraf"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
 )
 
 const getSerialNumberRe = "Current: (\\w+)"
@@ -45,12 +45,12 @@ func (cam *GphotoCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.M
 	err := cam.capture(timestamp)
 
 	if err != nil {
-		Error.Println("error capturing: ", err)
+		errLog.Println("error capturing: ", err)
 	} else {
 		m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
 		m.AddTag("camera_name", cam.FilenamePrefix)
 		captureTime <- m
-		Info.Printf("capture took %s\n", time.Since(start))
+		infoLog.Printf("capture took %s\n", time.Since(start))
 	}
 	for {
 		select {
@@ -61,13 +61,13 @@ func (cam *GphotoCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.M
 				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
 				err := cam.capture(timestamp)
 				if err != nil {
-					Error.Println("error capturing: ", err)
+					errLog.Println("error capturing: ", err)
 				} else {
 
 					m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
 					m.AddTag("camera_name", cam.FilenamePrefix)
 					captureTime <- m
-					Info.Printf("capture took %s\n", time.Since(start))
+					infoLog.Printf("capture took %s\n", time.Since(start))
 				}
 			}
 		case <-stop:
@@ -76,9 +76,7 @@ func (cam *GphotoCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.M
 	}
 }
 
-
-
-func (cam *GphotoCamera) capture(timestamp string) (error) {
+func (cam *GphotoCamera) capture(timestamp string) error {
 	// the filepath must resolve with %C for cameras that return multiple images (like canons jpg+raw)
 	filePath := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.%%C", cam.FilenamePrefix, timestamp))
 	filePathJpeg := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.jpg", cam.FilenamePrefix, timestamp))
@@ -88,7 +86,7 @@ func (cam *GphotoCamera) capture(timestamp string) (error) {
 		return err
 	}
 
-	Info.Printf("capturing %s on %s\n to %s\n",
+	infoLog.Printf("capturing %s on %s\n to %s\n",
 		cam.FilenamePrefix,
 		cam.USBPort,
 		filePath)
@@ -102,7 +100,7 @@ func (cam *GphotoCamera) capture(timestamp string) (error) {
 	cam.mutex.Unlock()
 
 	if err != nil {
-		Error.Println(errb.String())
+		errLog.Println(errb.String())
 		return err
 	}
 	if _, err := os.Stat(filePathJpeg); !os.IsNotExist(err) {
@@ -121,7 +119,7 @@ func (cam *GphotoCamera) checkUSBPort(port string) (bool, error) {
 	cam.mutex.Unlock()
 
 	if err != nil {
-		Error.Println("error checking usb port: ",string(output))
+		errLog.Println("error checking usb port: ", string(output))
 		return false, err
 	}
 	regexReturn := snRegexp.Find(output)
@@ -141,7 +139,7 @@ func (cam *GphotoCamera) getAllUsbPorts() ([]string, error) {
 	output, err := command.CombinedOutput()
 	cam.mutex.Unlock()
 	if err != nil {
-		Error.Println("error listing usb ports: ", string(output))
+		errLog.Println("error listing usb ports: ", string(output))
 		return []string{}, err
 	}
 
@@ -167,7 +165,7 @@ func (cam *GphotoCamera) resetUsb() (string, error) {
 	for _, port := range usbPorts {
 		valid, err := cam.checkUSBPort(port)
 		if err != nil {
-			Error.Println("error getting usb port", err)
+			errLog.Println("error getting usb port", err)
 		}
 
 		if valid {

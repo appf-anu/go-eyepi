@@ -3,14 +3,14 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"time"
-	"reflect"
-	"fmt"
-	"sort"
 )
 
 const baseDevPath = "/sys/devices"
@@ -20,7 +20,7 @@ const baseDevPath = "/sys/devices"
 // mapping that contains information about the device
 type Device struct {
 	obj string
-	env  map[string]string
+	env map[string]string
 }
 
 //RunWaitUdev wait on changes to devices (every 5 seconds)
@@ -38,9 +38,9 @@ func RunWaitUdev(changed chan<- bool) {
 		if !reflect.DeepEqual(devices, ndevices) {
 			devchanged := len(devices) - len(ndevices)
 			if devchanged > 0 {
-				Warning.Printf("%d devices removed\n", devchanged)
+				warnLog.Printf("%d devices removed\n", devchanged)
 			} else {
-				Warning.Printf("%d devices added\n", devchanged * -1)
+				warnLog.Printf("%d devices added\n", devchanged*-1)
 			}
 
 			select {
@@ -104,7 +104,7 @@ func ExistingDevices(subsystem string) ([]Device, error) {
 		devices = append(devices,
 			Device{
 				obj: kernelObject,
-				env:  env,
+				env: env,
 			})
 
 		return nil
@@ -113,11 +113,8 @@ func ExistingDevices(subsystem string) ([]Device, error) {
 	sort.Slice(devices, func(i, j int) bool {
 		return devices[i].obj > devices[j].obj
 	})
-	if err != nil {
-		return devices, err
-	}
 
-	return devices, nil
+	return devices, err
 }
 
 // getEventFromUEventFile return all env var define in file
@@ -136,7 +133,7 @@ func getEventFromUEventFile(path string) (rv map[string]string, err error) {
 		return nil, err
 	}
 
-	rv = make(map[string]string, 0)
+	rv = make(map[string]string)
 	buf := bufio.NewScanner(bytes.NewBuffer(data))
 
 	var line string

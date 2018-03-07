@@ -1,29 +1,27 @@
 package main
 
 import (
-	"time"
 	"github.com/BurntSushi/toml"
-	"os"
-	"sync"
 	"github.com/mdaffin/go-telegraf"
-	"path/filepath"
-	"log/syslog"
-	"log"
-	"io"
 	"gopkg.in/fsnotify.v1"
+	"io"
+	"log"
+	"log/syslog"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
 )
+
 //CONFIGPATH system path to configuration file
 const CONFIGPATH = "/etc/go-eyepi/go-eyepi.conf"
 
 var (
-  //Info informational logger
-	Info           *log.Logger
-  //Warning warning logger
-	Warning        *log.Logger
-  //Error error logger
-	Error          *log.Logger
-	config         *GlobalConfig
-	mutex          *sync.Mutex
+	infoLog *log.Logger
+	warnLog *log.Logger
+	errLog  *log.Logger
+	config  *GlobalConfig
+	mutex   *sync.Mutex
 )
 
 //GlobalConfig type to support the configuration of all cameras managed
@@ -58,23 +56,19 @@ func CopyFile(src, dest string) error {
 	defer to.Close()
 
 	_, err = io.Copy(to, from)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func printCameras(cam interface{}) {
 	switch c := cam.(type) {
 	case *GphotoCamera:
-		Info.Printf("Camera %s \n\t%t\n\t%s\n\t%s\n\t%s\n-------\n", c.FilenamePrefix, c.Enable, c.Interval, c.OutputDir, c.USBPort)
+		infoLog.Printf("Camera %s \n\t%t\n\t%s\n\t%s\n\t%s\n-------\n", c.FilenamePrefix, c.Enable, c.Interval, c.OutputDir, c.USBPort)
 	case *RaspberryPiCamera:
-		Info.Printf("Camera %s \n\t%t\n\t%s\n\t%s\n-------\n", c.FilenamePrefix, c.Enable, c.Interval, c.OutputDir)
+		infoLog.Printf("Camera %s \n\t%t\n\t%s\n\t%s\n-------\n", c.FilenamePrefix, c.Enable, c.Interval, c.OutputDir)
 	default:
-		Info.Println("Idk")
+		infoLog.Println("Idk")
 	}
 }
-
 
 func createCameras() {
 	hostname, err := os.Hostname()
@@ -84,12 +78,12 @@ func createCameras() {
 	config = &GlobalConfig{
 		"2006_01_02_15_04_05",
 		&RaspberryPiCamera{
-			Enable: true,
-			Interval: duration{time.Duration(time.Minute * 5)},
+			Enable:         true,
+			Interval:       duration{time.Duration(time.Minute * 5)},
 			FilenamePrefix: "",
-			OutputDir: "",
+			OutputDir:      "",
 		},
-		make(map[string]*GphotoCamera, 0),
+		make(map[string]*GphotoCamera),
 	}
 
 	if _, err := toml.DecodeFile(CONFIGPATH, &config); err != nil {
@@ -138,15 +132,15 @@ func initLogging(
 	warningHandle io.Writer,
 	errorHandle io.Writer) {
 
-	Info = log.New(infoHandle,
+	infoLog = log.New(infoHandle,
 		"[INFO] ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 
-	Warning = log.New(warningHandle,
+	warnLog = log.New(warningHandle,
 		"[WARNING] ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 
-	Error = log.New(errorHandle,
+	errLog = log.New(errorHandle,
 		"[ERROR] ",
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
@@ -163,7 +157,7 @@ func init() {
 func main() {
 	telegrafClient, telegrafClientErr := telegraf.NewUnix("/tmp/telegraf.sock")
 	if telegrafClientErr != nil {
-		Error.Println("Cannot create telegraf client QWTF!!!?: ", telegrafClientErr)
+		errLog.Println("Cannot create telegraf client QWTF!!!?: ", telegrafClientErr)
 	}
 
 	stopChan := make(chan bool)
@@ -178,7 +172,7 @@ func main() {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		Error.Fatal(err)
+		errLog.Fatal(err)
 	}
 	defer watcher.Close()
 	watcher.Add(CONFIGPATH)
@@ -210,7 +204,7 @@ func main() {
 			}
 			go config.RpiCamera.RunWait(stopChan, timingChan)
 		case event := <-watcher.Events:
-			if event.Op&fsnotify.Write == fsnotify.Write{
+			if event.Op&fsnotify.Write == fsnotify.Write {
 				for range config.Gphoto {
 					stopChan <- true
 				}

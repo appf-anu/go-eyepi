@@ -1,20 +1,20 @@
 package main
 
 import (
-	"strconv"
-  "os"
-	"os/exec"
-	"fmt"
-	"time"
-	"path/filepath"
+	"bufio"
 	"bytes"
+	"fmt"
+	// "os"
+	// "github.com/garyhouston/exif44"
+	// "github.com/garyhouston/tiff66"
+	"github.com/mdaffin/go-telegraf"
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
-	"bufio"
 	"io/ioutil"
-	"github.com/garyhouston/exif44"
-	"github.com/garyhouston/tiff66"
-	"github.com/mdaffin/go-telegraf"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"time"
 )
 
 //RaspberryPiCamera type to support the raspberry pi camera through the cli
@@ -45,12 +45,12 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 	err := cam.capture(timestamp)
 
 	if err != nil {
-		Error.Println("error capturing: ", err)
+		errLog.Println("error capturing: ", err)
 	} else {
 		m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
 		m.AddTag("camera_name", cam.FilenamePrefix)
 		captureTime <- m
-		Info.Printf("capture took %s\n", time.Since(start))
+		infoLog.Printf("capture took %s\n", time.Since(start))
 	}
 	for {
 		select {
@@ -61,13 +61,13 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
 				err := cam.capture(timestamp)
 				if err != nil {
-					Error.Println("error capturing: ", err)
+					errLog.Println("error capturing: ", err)
 				} else {
 
 					m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
 					m.AddTag("camera_name", cam.FilenamePrefix)
 					captureTime <- m
-					Info.Printf("capture took %s\n", time.Since(start))
+					infoLog.Printf("capture took %s\n", time.Since(start))
 				}
 			}
 		case <-stop:
@@ -76,6 +76,79 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 	}
 }
 
+func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
+	if cam.args == nil {
+		cam.args = NewRaspistillArgs()
+	}
+	cmd := createCommand(cam.args)
+	return cmd.Output()
+}
+
+func (cam *RaspberryPiCamera) capture(timestamp string) error {
+	if len(cam.ImageTypes) == 0 {
+		cam.ImageTypes = []string{"jpeg", "tiff"}
+	}
+	for _, fileType := range cam.ImageTypes {
+		var image []byte
+		var err error
+		filePath := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.%s", cam.FilenamePrefix, timestamp, fileType))
+		filePathLast := filepath.Join(cam.OutputDir, fmt.Sprintf("last_image.%s", fileType))
+		if fileType == "jpeg" {
+			cam.args = &RaspiStillArgs{Encoding: "jpg", Quality: 100, Brightness: defBrightness}
+			image, err = cam.getImage()
+			if err != nil {
+				return err
+			}
+		} else if stringInSlice(fileType, []string{"tif", "tiff"}) {
+			cam.args = &RaspiStillArgs{Encoding: "bmp", Brightness: defBrightness}
+			imageBMP, err := cam.getImage()
+			if err != nil {
+				return err
+			}
+			// convert bmp to tiff
+			bmpreader := bytes.NewReader(imageBMP)
+			bmpimage, err := bmp.Decode(bmpreader)
+			if err != nil {
+				return err
+			}
+
+			var tiffbytes bytes.Buffer
+			tiffwriter := bufio.NewWriter(&tiffbytes)
+			err = tiff.Encode(tiffwriter, bmpimage, &tiff.Options{Compression: tiff.Deflate})
+			if err != nil {
+				return err
+			}
+			tiffwriter.Flush()
+			image = tiffbytes.Bytes()
+
+		} else if stringInSlice(fileType, []string{"bmp", "png", "gif"}) {
+			cam.args = &RaspiStillArgs{Encoding: fileType, Brightness: defBrightness}
+			image, err = cam.getImage()
+			if err != nil {
+				return err
+			}
+		}
+
+		if err = ioutil.WriteFile(filePath, image, 0665); err != nil {
+			return err
+		}
+
+		if err = CopyFile(filePath, filePathLast); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
 
 //this is all ripped straight from https://github.com/technomancers/piCamera, modified for raspistill
 const (
@@ -84,14 +157,6 @@ const (
 	defEncoding   = "jpg"
 	defQuality    = 75
 )
-
-func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
-	if cam.args == nil {
-		cam.args = NewRaspistillArgs()
-	}
-	cmd := createCommand(cam.args)
-	return cmd.Output()
-}
 
 //RaspiStillArgs are arguments used to set camera settings for the desired output
 //https://www.raspberrypi.org/documentation/raspbian/applications/camera.md
@@ -184,122 +249,56 @@ func createCommand(args *RaspiStillArgs) *exec.Cmd {
 	return command
 }
 
-type readExifHandle struct {
-	tiffbytes *bytes.Buffer
-}
+// EXIF
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
-//ReadExif Exif handler, needs to be exported
-func (readexif readExifHandle) ReadExif(format exif44.FileFormat, imageIdx uint32, exif exif44.Exif, err error) error {
-	if err != nil {
-		return err
-	}
-
-	buf := readexif.tiffbytes.Bytes()
-	valid, order, ifdPos := tiff66.GetHeader(buf)
-	if !valid {
-		fmt.Fprintln(os.Stderr, "Not a valid tiff file wtf")
-		fmt.Fprintln(os.Stderr, err)
-		return nil
-	}
-	root, err := tiff66.GetIFDTree(buf, order, ifdPos, tiff66.TIFFSpace)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("-----------")
-	for _, field := range exif.TIFF.Fields {
-		fmt.Println(field)
-	}
-	fmt.Println("-----------")
-	root.AddFields(exif.TIFF.Fields)
-	//root.DeleteEmptyIFDs()
-	root.Fix()
-	for _, node := range root.SubIFDs {
-		fmt.Println(node.Tag)
-		for _, field := range node.Node.Fields {
-			field.Print(root.Order, tiff66.TagNames, 0)
-		}
-		fmt.Println("-----------")
-	}
-
-	fileSize := tiff66.HeaderSize + root.TreeSize()
-	out := make([]byte, fileSize)
-	tiff66.PutHeader(out, order, tiff66.HeaderSize)
-	_, err = root.PutIFDTree(out, tiff66.HeaderSize)
-	if err != nil {
-		return err
-	}
-	var tiffbytes bytes.Buffer
-	tiffwriter := bufio.NewWriter(&tiffbytes)
-	tiffwriter.Write(out[:])
-	tiffwriter.Flush()
-
-	return nil
-}
-
-
-func (cam *RaspberryPiCamera) capture(timestamp string) (error) {
-	if len(cam.ImageTypes) == 0 {
-		cam.ImageTypes = []string{"jpeg", "tiff"}
-	}
-	for _, fileType := range cam.ImageTypes {
-		var image []byte
-		var err   error
-		filePath := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.%s", cam.FilenamePrefix, timestamp, fileType))
-		filePathLast := filepath.Join(cam.OutputDir, fmt.Sprintf("last_image.%s", fileType))
-		if fileType == "jpeg" {
-			cam.args = &RaspiStillArgs{Encoding: "jpg", Quality: 100, Brightness: defBrightness}
-			image, err = cam.getImage()
-			if err != nil {
-				return err
-			}
-		} else if stringInSlice(fileType, []string{"tif", "tiff"}) {
-			cam.args = &RaspiStillArgs{Encoding: "bmp", Brightness: defBrightness}
-			imageBMP, err := cam.getImage()
-			if err != nil {
-				return err
-			}
-			// convert bmp to tiff
-			bmpreader := bytes.NewReader(imageBMP)
-			bmpimage, err := bmp.Decode(bmpreader)
-			if err != nil {
-				return err
-			}
-
-			var tiffbytes bytes.Buffer
-			tiffwriter := bufio.NewWriter(&tiffbytes)
-			err = tiff.Encode(tiffwriter, bmpimage, &tiff.Options{Compression: tiff.Deflate})
-			if err != nil {
-				return err
-			}
-			tiffwriter.Flush()
-			image = tiffbytes.Bytes()
-
-		} else if stringInSlice(fileType, []string{"bmp", "png", "gif"}) {
-			cam.args = &RaspiStillArgs{Encoding: fileType, Brightness: defBrightness}
-			image, err = cam.getImage()
-			if err != nil {
-				return err
-			}
-		}
-
-		if err = ioutil.WriteFile(filePath, image, 0665); err != nil {
-			return err
-		}
-
-		if err = CopyFile(filePath, filePathLast); err != nil{
-			return err
-		}
-
-	}
-	return nil
-}
+// type readExifHandle struct {
+// 	tiffbytes *bytes.Buffer
+// }
+// //ReadExif Exif handler, needs to be exported
+// func (readexif readExifHandle) ReadExif(format exif44.FileFormat, imageIdx uint32, exif exif44.Exif, err error) error {
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	buf := readexif.tiffbytes.Bytes()
+// 	valid, order, ifdPos := tiff66.GetHeader(buf)
+// 	if !valid {
+// 		fmt.Fprintln(os.Stderr, "Not a valid tiff file wtf")
+// 		fmt.Fprintln(os.Stderr, err)
+// 		return nil
+// 	}
+// 	root, err := tiff66.GetIFDTree(buf, order, ifdPos, tiff66.TIFFSpace)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	fmt.Println("-----------")
+// 	for _, field := range exif.TIFF.Fields {
+// 		fmt.Println(field)
+// 	}
+// 	fmt.Println("-----------")
+// 	root.AddFields(exif.TIFF.Fields)
+// 	//root.DeleteEmptyIFDs()
+// 	root.Fix()
+// 	for _, node := range root.SubIFDs {
+// 		fmt.Println(node.Tag)
+// 		for _, field := range node.Node.Fields {
+// 			field.Print(root.Order, tiff66.TagNames, 0)
+// 		}
+// 		fmt.Println("-----------")
+// 	}
+//
+// 	fileSize := tiff66.HeaderSize + root.TreeSize()
+// 	out := make([]byte, fileSize)
+// 	tiff66.PutHeader(out, order, tiff66.HeaderSize)
+// 	_, err = root.PutIFDTree(out, tiff66.HeaderSize)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	var tiffbytes bytes.Buffer
+// 	tiffwriter := bufio.NewWriter(&tiffbytes)
+// 	tiffwriter.Write(out[:])
+// 	tiffwriter.Flush()
+//
+// 	return nil
+// }
