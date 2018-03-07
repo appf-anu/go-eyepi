@@ -36,17 +36,10 @@ deploy:
   - provider: releases
     api_key: $TOKEN
     file_glob: true
-    file: "bin/*"
-    name: Build $(date +'%Y-%m-%dT%R') - BIN
-    skip_cleanup: true
-    on:
-      tags: true
-
-  - provider: releases
-    api_key: $TOKEN
-    file_glob: true
-    file: "ansible.tar.gz"
-    name: Build $(date +'%Y-%m-%dT%R') - ANSIBLE
+    file: 
+      - "bin/*"
+      - "ansible.tar.gz"
+    name: Release $TRAVIS_TAG
     skip_cleanup: true
     on:
       tags: true
