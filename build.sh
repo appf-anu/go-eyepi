@@ -1,5 +1,5 @@
 #!/bin/bash
-# mkdir bin
+mkdir bin
 go build -o bin/rpi-sshsign ./rpi-sshsign
 cp bin/rpi-sshsign ansible/files/rpi-sshsign
 go build -o bin/openvpn-mongopass ./openvpn-mongopass
