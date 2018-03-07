@@ -1,7 +1,9 @@
+//+build linux,x
 package main
 
 import (
 	"strconv"
+  "os"
 	"os/exec"
 	"fmt"
 	"time"
@@ -13,10 +15,10 @@ import (
 	"io/ioutil"
 	"github.com/garyhouston/exif44"
 	"github.com/garyhouston/tiff66"
-	"os"
 	"github.com/mdaffin/go-telegraf"
 )
 
+//RaspberryPiCamera type to support the raspberry pi camera through the cli
 type RaspberryPiCamera struct {
 	Enable         bool
 	Interval       duration
@@ -26,8 +28,57 @@ type RaspberryPiCamera struct {
 	args           *RaspiStillArgs
 }
 
-//this is all ripped straight from https://github.com/technomancers/piCamera, modified for raspistill
+//RunWait start the camera on an interval capture
+func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.Measurement) {
 
+	waitForNextTimepoint := time.After(time.Until(time.Now().Add(cam.Interval.Duration).Truncate(cam.Interval.Duration)))
+
+	select {
+	case <-stop:
+		return
+	case <-waitForNextTimepoint:
+		break
+	}
+
+	ticker := time.NewTicker(cam.Interval.Duration)
+	start := time.Now()
+	timestamp := time.Now().Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
+	err := cam.capture(timestamp)
+
+	if err != nil {
+		Error.Println("error capturing: ", err)
+	} else {
+		m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
+		m.AddTag("camera_name", cam.FilenamePrefix)
+		captureTime <- m
+		Info.Printf("capture took %s\n", time.Since(start))
+	}
+	for {
+		select {
+		case t := <-ticker.C:
+			if cam.Enable {
+				start := time.Now()
+				// Truncate the current time to the interval duration
+				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
+				err := cam.capture(timestamp)
+				if err != nil {
+					Error.Println("error capturing: ", err)
+				} else {
+
+					m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
+					m.AddTag("camera_name", cam.FilenamePrefix)
+					captureTime <- m
+					Info.Printf("capture took %s\n", time.Since(start))
+				}
+			}
+		case <-stop:
+			return
+		}
+	}
+}
+
+
+//this is all ripped straight from https://github.com/technomancers/piCamera, modified for raspistill
 const (
 	defBrightness = 50
 	defMode       = 0
@@ -35,15 +86,15 @@ const (
 	defQuality    = 75
 )
 
-func (pc *RaspberryPiCamera) GetImage() ([]byte, error) {
-	if pc.args == nil {
-		pc.args = NewRaspistillArgs()
+func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
+	if cam.args == nil {
+		cam.args = NewRaspistillArgs()
 	}
-	cmd := createCommand(pc.args)
+	cmd := createCommand(cam.args)
 	return cmd.Output()
 }
 
-//RaspividArgs are arguments used to set camera settings for the desired output
+//RaspiStillArgs are arguments used to set camera settings for the desired output
 //https://www.raspberrypi.org/documentation/raspbian/applications/camera.md
 type RaspiStillArgs struct {
 	Encoding      string // Encoding to use for output file (jpg, bmp, gif, png)
@@ -67,7 +118,7 @@ type RaspiStillArgs struct {
 	AnnotateExtra string // annotate the image according to the documentation
 }
 
-//NewArgs returns a RaspividArgs with the default settings
+//NewRaspistillArgs returns a RaspividArgs with the default settings
 func NewRaspistillArgs() *RaspiStillArgs {
 	return &RaspiStillArgs{
 		Brightness: defBrightness,
@@ -134,7 +185,7 @@ func createCommand(args *RaspiStillArgs) *exec.Cmd {
 	return command
 }
 
-type ReadExifHandle struct {
+type readExifHandle struct {
 	tiffbytes *bytes.Buffer
 }
 
@@ -147,8 +198,8 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-// Exif handler.
-func (readexif ReadExifHandle) ReadExif(format exif44.FileFormat, imageIdx uint32, exif exif44.Exif, err error) error {
+//ReadExif Exif handler, needs to be exported
+func (readexif readExifHandle) ReadExif(format exif44.FileFormat, imageIdx uint32, exif exif44.Exif, err error) error {
 	if err != nil {
 		return err
 	}
@@ -208,13 +259,13 @@ func (cam *RaspberryPiCamera) capture(timestamp string) (error) {
 		filePathLast := filepath.Join(cam.OutputDir, fmt.Sprintf("last_image.%s", fileType))
 		if fileType == "jpeg" {
 			cam.args = &RaspiStillArgs{Encoding: "jpg", Quality: 100, Brightness: defBrightness}
-			image, err = cam.GetImage()
+			image, err = cam.getImage()
 			if err != nil {
 				return err
 			}
 		} else if stringInSlice(fileType, []string{"tif", "tiff"}) {
 			cam.args = &RaspiStillArgs{Encoding: "bmp", Brightness: defBrightness}
-			imageBMP, err := cam.GetImage()
+			imageBMP, err := cam.getImage()
 			if err != nil {
 				return err
 			}
@@ -236,7 +287,7 @@ func (cam *RaspberryPiCamera) capture(timestamp string) (error) {
 
 		} else if stringInSlice(fileType, []string{"bmp", "png", "gif"}) {
 			cam.args = &RaspiStillArgs{Encoding: fileType, Brightness: defBrightness}
-			image, err = cam.GetImage()
+			image, err = cam.getImage()
 			if err != nil {
 				return err
 			}
@@ -252,52 +303,4 @@ func (cam *RaspberryPiCamera) capture(timestamp string) (error) {
 
 	}
 	return nil
-}
-
-func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.Measurement) {
-
-	waitForNextTimepoint := time.After(time.Until(time.Now().Add(cam.Interval.Duration).Truncate(cam.Interval.Duration)))
-
-	select {
-	case <-stop:
-		return
-	case <-waitForNextTimepoint:
-		break
-	}
-
-	ticker := time.NewTicker(cam.Interval.Duration)
-	start := time.Now()
-	timestamp := time.Now().Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
-	err := cam.capture(timestamp)
-
-	if err != nil {
-		Error.Println("error capturing: ", err)
-	} else {
-		m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
-		m.AddTag("camera_name", cam.FilenamePrefix)
-		captureTime <- m
-		Info.Printf("capture took %s\n", time.Since(start))
-	}
-	for {
-		select {
-		case t := <-ticker.C:
-			if cam.Enable {
-				start := time.Now()
-				// Truncate the current time to the interval duration
-				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
-				err := cam.capture(timestamp)
-				if err != nil {
-					Error.Println("error capturing: ", err)
-				} else {
-
-					m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
-					m.AddTag("camera_name", cam.FilenamePrefix)
-					captureTime <- m
-					Info.Printf("capture took %s\n", time.Since(start))
-				}
-			}
-		case <-stop:
-			return
-		}
-	}
 }

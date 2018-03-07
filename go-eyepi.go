@@ -12,19 +12,21 @@ import (
 	"io"
 	"gopkg.in/fsnotify.v1"
 )
-
+//CONFIGPATH system path to configuration file
 const CONFIGPATH = "/etc/go-eyepi/go-eyepi.conf"
-//const CONFIGPATH = "./go-eyepi.conf"
 
 var (
-	Trace          *log.Logger
+  //Info informational logger
 	Info           *log.Logger
+  //Warning warning logger
 	Warning        *log.Logger
+  //Error error logger
 	Error          *log.Logger
 	config         *GlobalConfig
 	mutex          *sync.Mutex
 )
 
+//GlobalConfig type to support the configuration of all cameras managed
 type GlobalConfig struct {
 	TimestampFormat string
 	RpiCamera       *RaspberryPiCamera
@@ -41,6 +43,7 @@ func (d *duration) UnmarshalText(text []byte) error {
 	return err
 }
 
+//CopyFile copies files from src to dest returns any error
 func CopyFile(src, dest string) error {
 	from, err := os.Open(src)
 	if err != nil {
@@ -62,7 +65,6 @@ func CopyFile(src, dest string) error {
 }
 
 func printCameras(cam interface{}) {
-
 	switch c := cam.(type) {
 	case *GphotoCamera:
 		Info.Printf("Camera %s \n\t%t\n\t%s\n\t%s\n\t%s\n-------\n", c.FilenamePrefix, c.Enable, c.Interval, c.OutputDir, c.USBPort)
@@ -71,10 +73,10 @@ func printCameras(cam interface{}) {
 	default:
 		Info.Println("Idk")
 	}
-
 }
 
-func CreateCameras() {
+
+func createCameras() {
 	hostname, err := os.Hostname()
 	if err != nil {
 		panic(err)
@@ -155,7 +157,7 @@ func init() {
 	initLogging(infoLogger, warningLogger, errLogger)
 
 	mutex = &sync.Mutex{}
-	CreateCameras()
+	createCameras()
 }
 
 func main() {
@@ -193,7 +195,7 @@ func main() {
 				stopChan <- true
 			}
 			stopChan <- true
-			CreateCameras()
+			createCameras()
 			for len(stopChan) > 0 {
 				<-stopChan
 			}
@@ -213,7 +215,7 @@ func main() {
 					stopChan <- true
 				}
 				stopChan <- true
-				CreateCameras()
+				createCameras()
 				for len(stopChan) > 0 {
 					<-stopChan
 				}

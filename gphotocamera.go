@@ -20,6 +20,7 @@ const getInUseUsbRe = "usb:(\\d+),(\\d+)"
 var /* const */ snRegexp = regexp.MustCompile(getSerialNumberRe)
 var /* const */ usbRegexp = regexp.MustCompile(getInUseUsbRe)
 
+//GphotoCamera type to support gphoto2 cameras through cli interaction
 type GphotoCamera struct {
 	Enable                      bool
 	Interval                    duration
@@ -28,18 +29,8 @@ type GphotoCamera struct {
 	mutex                       *sync.Mutex
 }
 
-func (cam *GphotoCamera) CaptureImageToFile(filename string) error {
-	cmd := cam.createCaptureCommand(filename)
-	_, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
+//RunWait start the camera on an interval capture
 func (cam *GphotoCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.Measurement) {
-
 	waitForNextTimepoint := time.After(time.Until(time.Now().Add(cam.Interval.Duration).Truncate(cam.Interval.Duration)))
 
 	select {
@@ -93,7 +84,7 @@ func (cam *GphotoCamera) capture(timestamp string) (error) {
 	filePath := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.%%C", cam.FilenamePrefix, timestamp))
 	filePathJpeg := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.jpg", cam.FilenamePrefix, timestamp))
 	lastJpegPath := filepath.Join(cam.OutputDir, fmt.Sprintf("last_image.jpg"))
-	_, err := cam.ResetUsb()
+	_, err := cam.resetUsb()
 	if err != nil {
 		return err
 	}
@@ -168,7 +159,7 @@ func (cam *GphotoCamera) getAllUsbPorts() ([]string, error) {
 	return rstrings, nil
 }
 
-func (cam *GphotoCamera) ResetUsb() (string, error) {
+func (cam *GphotoCamera) resetUsb() (string, error) {
 	usbPorts, err := cam.getAllUsbPorts()
 
 	if err != nil {
@@ -185,7 +176,7 @@ func (cam *GphotoCamera) ResetUsb() (string, error) {
 			return port, nil
 		}
 	}
-	return "", errors.New(fmt.Sprintf("Gphoto2 camera with serialnumber %s not detected", cam.GphotoSerialNumber))
+	return "", fmt.Errorf("Gphoto2 camera with serialnumber %s not detected", cam.GphotoSerialNumber)
 }
 
 func (cam *GphotoCamera) createCaptureCommand(targetFilename string) *exec.Cmd {
@@ -200,10 +191,11 @@ func (cam *GphotoCamera) createCaptureCommand(targetFilename string) *exec.Cmd {
 	return command
 }
 
+//RunGphoto2Command allows runnning of arbitrary gphoto2 commands
 func (cam *GphotoCamera) RunGphoto2Command(args ...string) (string, error) {
 	valid, err := cam.checkUSBPort(cam.USBPort)
 	if valid && err == nil {
-		usbPort, err := cam.ResetUsb()
+		usbPort, err := cam.resetUsb()
 		if err != nil {
 			return "", err
 		}

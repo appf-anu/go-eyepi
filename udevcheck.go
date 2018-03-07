@@ -11,18 +11,19 @@ import (
 	"reflect"
 	"fmt"
 	"sort"
-	//"github.com/kylelemons/godebug/pretty"
 )
 
-const (
-	BASE_DEVPATH = "/sys/devices"
-)
+const baseDevPath = "/sys/devices"
 
+//Device type for devices
+// contains a, "obj" which is the path to the kernel file and "env" which is a
+// mapping that contains information about the device
 type Device struct {
-	KObj string
-	Env  map[string]string
+	obj string
+	env  map[string]string
 }
 
+//RunWaitUdev wait on changes to devices (every 5 seconds)
 func RunWaitUdev(changed chan<- bool) {
 	devices, err := ExistingDevices("usb")
 	if err != nil {
@@ -51,11 +52,11 @@ func RunWaitUdev(changed chan<- bool) {
 	}
 }
 
-// ExistingDevices return all plugged devices matched by the matcher
+//ExistingDevices return all plugged devices matched by the matcher
 // All uevent files inside /sys/devices is crawled to match right env values
 func ExistingDevices(subsystem string) ([]Device, error) {
 	devices := make([]Device, 0)
-	err := filepath.Walk(BASE_DEVPATH, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(baseDevPath, func(path string, info os.FileInfo, err error) error {
 
 		if err != nil {
 			return err
@@ -70,10 +71,10 @@ func ExistingDevices(subsystem string) ([]Device, error) {
 			return err
 		}
 
-		kObj := filepath.Dir(path)
+		kernelObject := filepath.Dir(path)
 
 		// Append to env subsystem if existing
-		subsys := filepath.Join(kObj, "subsystem")
+		subsys := filepath.Join(kernelObject, "subsystem")
 		if link, err := os.Readlink(subsys); err == nil {
 			if ss := filepath.Base(link); strings.Contains(ss, subsystem) {
 				env["SUBSYSTEM"] = ss
@@ -84,7 +85,7 @@ func ExistingDevices(subsystem string) ([]Device, error) {
 		}
 
 		// get human readable product name.
-		product := filepath.Join(kObj, "product")
+		product := filepath.Join(kernelObject, "product")
 		if _, err := os.Stat(product); err == nil {
 			b, err := ioutil.ReadFile(product)
 			if err != nil {
@@ -101,16 +102,16 @@ func ExistingDevices(subsystem string) ([]Device, error) {
 			return nil
 		}
 		devices = append(devices,
-			Device{
-				KObj: kObj,
-				Env:  env,
+			device{
+				obj: kernelObject,
+				env:  env,
 			})
 
 		return nil
 	})
 
 	sort.Slice(devices, func(i, j int) bool {
-		return devices[i].KObj > devices[j].KObj
+		return devices[i].obj > devices[j].obj
 	})
 	if err != nil {
 		return devices, err
