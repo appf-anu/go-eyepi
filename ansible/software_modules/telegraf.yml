@@ -1,0 +1,39 @@
+# install telegraf thru aur
+- include_tasks: tasks/aur.yml pkg_name="telegraf-bin"
+
+- group:
+    name: gpio
+    state: present
+    system: yes
+
+- user:
+    append: yes
+    name: telegraf
+    groups: gpio
+
+- name: template config out
+  template:
+    src: templates/telegraf.conf.j2
+    dest: /etc/telegraf/telegraf.conf
+
+- name: template service out
+  template:
+    src: templates/telegraf.service.j2
+    dest: /usr/lib/systemd/system/telegraf.service
+
+- name: copy modified arm-telegraf service
+  copy:
+    src: telegraf-arm-dht
+    dest: /usr/bin/telegraf
+
+- name: copy udev rules
+  copy:
+    src: 99-gpio.rules
+    dest: /etc/udev/rules.d/99-gpio.rules
+
+- name: start service
+  service:
+    name: telegraf
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

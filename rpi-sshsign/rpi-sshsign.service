@@ -1,0 +1,11 @@
+[Unit]
+Description=Signature generator for openvpn with ssh keys
+After=syslog.target
+
+[Service]
+User=picam
+ExecStart=/usr/bin/rpi-sshsign
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target

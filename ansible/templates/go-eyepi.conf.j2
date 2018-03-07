@@ -1,0 +1,10 @@
+[rpicamera]
+enable = true
+interval = "10m"
+
+{% for name,camera in dslrs.items() %}
+[gphoto.{{name}}]
+enable = true
+interval = "10m"
+gphotoserialnumber = "bd73910b59f148e2ba5f25bfe8f5212e"
+{% endfor %}

@@ -1,0 +1,69 @@
+- hosts: all
+  vars_files:
+    - vars/misc.yml
+    - vars/userlist.yml
+    - vars/pkgs.yml
+    - secure/wireless_networks.yml
+
+  vars:
+    - host_locale: en_AU.UTF-8
+    - host_locale_dict: {
+            LANG: "{{ host_locale }}",
+            LC_COLLATE: "{{ host_locale }}",
+            LC_CTYPE: "{{ host_locale }}",
+            LC_MESSAGES: "{{ host_locale }}",
+            LC_MONETARY: "{{ host_locale }}",
+            LC_NUMERIC: "{{ host_locale }}",
+            LC_TIME: "{{ host_locale }}",
+            LC_ALL: "{{ host_locale }}"
+        }
+
+  tasks:
+    - include_tasks: tasks/base_setup.yml
+      tags: base,setup, always
+
+    - include_tasks: tasks/rpi_config.yml
+      tags: base,setup
+
+    - include_tasks: tasks/users.yml
+      tags: base,users
+
+    - include_tasks: tasks/sftp_key.yml
+      tags: network,sftp
+
+
+    - include_tasks: tasks/updatepkgs.yml
+      tags: base
+
+    - include_tasks: tasks/installpkgs.yml suite="Base" pkgs="{{packages_base}}"
+      tags: pkgs,base
+
+    - include_tasks: tasks/installpkgs.yml suite="Eyepi" pkgs="{{pacman_pkgs}}"
+      tags: pkgs,dist
+
+    - include_tasks: tasks/openvpn.yml vpn_config_file="{{vpn_conf}}"
+      tags: network,vpn
+
+    # - include_tasks: tasks/wireless.yml interface="wlan0"
+    #   tags: network,wireless
+    #   when: wireless_keys is defined
+
+    - include_tasks: software_modules/gphoto2.yml version=HEAD
+      tags: modules,gphoto2
+      when: build_gphoto2 is defined and build_gphoto2 == True
+
+    - include_tasks: tasks/installpkgs.yml suite="gphoto2/libgphoto2" pkgs="libgphoto2 gphoto2"
+      tags: modules,gphoto2
+      when: build_gphoto2 is not defined or build_gphoto2 == False
+
+    # - include_tasks: tasks/python_modules.yml modules="{{python3_pkgs}}" python_version=3
+    #   tags: pkgs,python
+
+    - include_tasks: software_modules/telegraf.yml
+      tags: telegraf,metrics
+
+    - include_tasks: software_modules/go-eyepi.yml
+      tags: modules,eyepi
+
+    - include_tasks: tasks/lsyncd.yml
+      tags: network,lsyncd

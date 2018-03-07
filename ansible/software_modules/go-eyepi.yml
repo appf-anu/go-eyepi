@@ -1,0 +1,37 @@
+- name: stop eyepi capture service
+  systemd:
+    name: eyepi-capture.service
+    daemon_reload: yes
+    state: stopped
+    enabled: yes
+    masked: no
+  ignore_errors: yes
+
+- name: copy go-eyepi binary
+  copy:
+    src: go-eyepi
+    dest: /usr/bin/go-eyepi
+    mode: 0755
+
+- name: create go-eyepi config directory
+  file:
+    dest: /etc/go-eyepi
+    state: directory
+
+- name: template out go-eyepi.conf
+  template:
+    src: go-eyepi.conf.j2
+    dest: /etc/go-eyepi/go-eyepi.conf
+
+- name: copy go-eyepi systemd service file
+  copy:
+    src: eyepi-capture.service
+    dest: /etc/systemd/system/eyepi-capture.service
+
+- name: enable eyepi capture service
+  systemd:
+    name: eyepi-capture.service
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+    masked: no
