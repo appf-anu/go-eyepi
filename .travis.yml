@@ -12,7 +12,7 @@ notifications:
 before_script:
   - go get github.com/mdaffin/go-telegraf
   - go get golang.org/x/crypto/ssh
-  - go get gopkg.in/mgo.2
+  - go get gopkg.in/mgo.v2
   - go get github.com/BurntSushi/toml
   - go get gopkg.in/fsnotify.v1
   - go get github.com/grayhouston/tiff66
