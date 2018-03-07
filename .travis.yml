@@ -15,8 +15,8 @@ before_script:
   - go get gopkg.in/mgo.v2
   - go get github.com/BurntSushi/toml
   - go get gopkg.in/fsnotify.v1
-  - go get github.com/grayhouston/tiff66
-  - go get github.com/grayhouston/exif44
+  - go get github.com/garyhouston/tiff66
+  - go get github.com/garyhouston/exif44
   - go get golang.org/x/image
 
 script: "./build.sh"
