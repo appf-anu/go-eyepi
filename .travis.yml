@@ -33,13 +33,13 @@ before_deploy:
   - tar -zcvf ansible.tar.gz ansible
 
 deploy:
-  - provider: releases
-    api_key: $TOKEN
-    file_glob: true
-    file: 
-      - "bin/*"
-      - "ansible.tar.gz"
-    name: Release $TRAVIS_TAG
-    skip_cleanup: true
-    on:
-      tags: true
+  provider: releases
+  api_key: $TOKEN
+  file_glob: true
+  file:
+    - "bin/*"
+    - "ansible.tar.gz"
+  name: Release $TRAVIS_TAG
+  skip_cleanup: true
+  on:
+    tags: true
