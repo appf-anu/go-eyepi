@@ -19,7 +19,6 @@ const getInUseUsbRe = "usb:(\\d+),(\\d+)"
 var /* const */ snRegexp = regexp.MustCompile(getSerialNumberRe)
 var /* const */ usbRegexp = regexp.MustCompile(getInUseUsbRe)
 
-//GphotoCamera type to support gphoto2 cameras through cli interaction
 type GphotoCamera struct {
 	Enable                      bool
 	Interval                    duration

@@ -21,9 +21,11 @@ before_script:
   - go get -u golang.org/x/image/riff
   - go get -u golang.org/x/image/tiff
   - go get -u golang.org/x/image/tiff/lzw
+  - go get github.com/golang/lint/golint
 
-
-script: "./build.sh"
+script:
+  - golint -set_exit_status
+  - "./build.sh"
 
 before_deploy:
   - git config --local user.name "zarlo"
@@ -39,7 +41,6 @@ deploy:
     skip_cleanup: true
     on:
       tags: true
-
 
   - provider: releases
     api_key: $TOKEN

@@ -4,7 +4,6 @@
     name: openvpn
     state: present
 
-
 - name: upload rpi-sshsign
   copy:
     src: rpi-sshsign
