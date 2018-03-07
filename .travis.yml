@@ -1,0 +1,47 @@
+language: go
+
+go:
+  - "1.10"
+
+install: true
+
+#dont email me i dont like spam
+notifications:
+  email: false
+
+before_script:
+  - go get github.com/mdaffin/go-telegraf
+  - go get golang.org/x/crypto/ssh
+  - go get gopkg.in/mgo.2
+  - go get github.com/BurntSushi/toml
+  - go get gopkg.in/fsnotify.v1
+  - go get github.com/grayhouston/tiff66
+  - go get github.com/grayhouston/exif44
+  - go get golang.org/x/image
+
+script: "./build.sh"
+
+before_deploy:
+  - git config --local user.name "zarlo"
+  - git config --local user.email "zarlo5899@gmail.com"
+  - tar -zcvf ansible.tar.gz ansible
+
+deploy:
+  - provider: releases
+    api_key: $TOKEN
+    file_glob: true
+    file: "bin/*"
+    name: Build $(date +'%Y-%m-%dT%R') - BIN
+    skip_cleanup: true
+    on:
+      tags: true
+
+
+  - provider: releases
+    api_key: $TOKEN
+    file_glob: true
+    file: "ansible.tar.gz"
+    name: Build $(date +'%Y-%m-%dT%R') - ANSIBLE
+    skip_cleanup: true
+    on:
+      tags: true
