@@ -102,7 +102,7 @@ func ExistingDevices(subsystem string) ([]Device, error) {
 			return nil
 		}
 		devices = append(devices,
-			device{
+			Device{
 				obj: kernelObject,
 				env:  env,
 			})

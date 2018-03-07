@@ -119,7 +119,7 @@ func createCameras() {
 			config.Gphoto[name].Interval.Duration = time.Duration(time.Minute * 10)
 		}
 		config.Gphoto[name].mutex = mutex
-		port, err := cam.ResetUsb()
+		port, err := cam.resetUsb()
 		if err != nil {
 			cam.Enable = false
 		}

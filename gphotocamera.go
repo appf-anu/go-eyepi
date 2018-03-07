@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 	"regexp"
-	"errors"
 	"bytes"
 	"sync"
 	"strings"
