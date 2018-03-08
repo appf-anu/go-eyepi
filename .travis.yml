@@ -18,7 +18,6 @@ before_script:
   - go get github.com/garyhouston/tiff66
   - go get github.com/garyhouston/exif44
   - go get -u golang.org/x/image/bmp
-  - go get -u golang.org/x/image/riff
   - go get -u golang.org/x/image/tiff
   - go get -u golang.org/x/image/tiff/lzw
   - go get github.com/golang/lint/golint

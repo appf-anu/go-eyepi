@@ -1,28 +1,27 @@
 package main
 
 import (
-	"gopkg.in/mgo.v2"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
-	"strings"
-	"fmt"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"errors"
 	"os"
-	"encoding/base64"
+	"strings"
 )
 
 var (
-	session    *mgo.Session
-	rpiCollection *mgo.Collection
+	rpiCollection  *mgo.Collection
 	userCollection *mgo.Collection
 )
 
-type RaspberryPi struct{
+type RaspberryPi struct {
 	Ssh_private_key string
-	Ssh_public_key string
-	Machine string
-	Name string
+	Ssh_public_key  string
+	Machine         string
+	Name            string
 }
 
 func (dbRpi RaspberryPi) ValidateMessage(messageandsig string) error {
@@ -34,7 +33,7 @@ func (dbRpi RaspberryPi) ValidateMessage(messageandsig string) error {
 	}
 	sigbytes := []byte(decodedSig)
 	pub, _, _, _, keyError := ssh.ParseAuthorizedKey([]byte(dbRpi.Ssh_public_key))
-	if keyError != nil{
+	if keyError != nil {
 		fmt.Printf("[auth]	KEYERROR	%s\n", dbRpi.Name)
 		return keyError
 	}
@@ -49,9 +48,8 @@ func (dbRpi RaspberryPi) ValidateMessage(messageandsig string) error {
 	return nil
 }
 
-
-type User struct{
-	Email string
+type User struct {
+	Email    string
 	Password string
 }
 
@@ -66,7 +64,6 @@ func (dbUser User) ValidatePassword(inputPasswordString string) error {
 	}
 	return err
 }
-
 
 func Authenticate(id string, inputPasswordString string) error {
 	dbUser := User{}
@@ -86,9 +83,7 @@ func Authenticate(id string, inputPasswordString string) error {
 }
 
 func main() {
-	var err error
-	session, err = mgo.Dial("localhost")
-
+	session, err := mgo.Dial("localhost")
 	if err != nil {
 		fmt.Printf("[db]	FAIL	%s", err)
 	}
@@ -97,14 +92,12 @@ func main() {
 	userCollection = session.DB("supersite_database").C("user")
 	username := os.Getenv("username")
 	password := os.Getenv("password")
-
 	err = Authenticate(username, password)
+
 	session.Close()
-	if err == nil{
+	if err == nil {
 		os.Exit(0)
 	}
-	fmt.Printf("%s", err)
+	fmt.Println(err)
 	os.Exit(1)
-
 }
-
