@@ -1,5 +1,5 @@
 [all:vars]
-api_key="eyJpYXQiOjE1MjA1NTM5NDgsImFsZyI6IkhTMjU2IiwiZXhwIjoxNTIwNTU3NTQ4fQ.eyJpZCI6IjU1ODdiZDhjZDEzMTQ0MjNiN2FhYzk0NyJ9.9YJbiiQxYgBQzudPRNhEFhvdaC6tr0L5loGif0nOdDs"
+api_key="eyJpYXQiOjE1MjA1NjgyOTIsImFsZyI6IkhTMjU2IiwiZXhwIjoxNTIwNTcxODkyfQ.eyJpZCI6IjU1ODdiZDhjZDEzMTQ0MjNiN2FhYzk0NyJ9.zsEWY4ma3_sUa8S5HpJlnW4p1YtLGXSSUoH-9LtNtIU"
 build_gphoto2=False
 
 [rpis]

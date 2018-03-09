@@ -86,14 +86,14 @@ func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
 
 func (cam *RaspberryPiCamera) capture(timestamp string) error {
 	if len(cam.ImageTypes) == 0 {
-		cam.ImageTypes = []string{"jpeg", "tiff"}
+		cam.ImageTypes = []string{"jpg", "tiff"}
 	}
 	for _, fileType := range cam.ImageTypes {
 		var image []byte
 		var err error
 		filePath := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.%s", cam.FilenamePrefix, timestamp, fileType))
 		filePathLast := filepath.Join(cam.OutputDir, fmt.Sprintf("last_image.%s", fileType))
-		if fileType == "jpeg" {
+		if stringInSlice(fileType ,[]string{"jpeg","jpg"}) {
 			cam.args = &RaspiStillArgs{Encoding: "jpg", Quality: 100, Brightness: defBrightness}
 			image, err = cam.getImage()
 			if err != nil {
