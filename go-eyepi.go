@@ -2,8 +2,12 @@ package main
 
 import (
 	"github.com/BurntSushi/toml"
+	"github.com/fogleman/gg"
+	"github.com/golang/freetype/truetype"
 	"github.com/mdaffin/go-telegraf"
+	"golang.org/x/image/font/gofont/goregular"
 	"gopkg.in/fsnotify.v1"
+	"image/jpeg"
 	"io"
 	"log"
 	"log/syslog"
@@ -57,6 +61,42 @@ func CopyFile(src, dest string) error {
 
 	_, err = io.Copy(to, from)
 	return err
+}
+
+//TimestampLast takes a jpeg image path, adds a timestamp to the image and writes it out to outputPath
+func TimestampLast(path, outputPathJpeg string) (err error) {
+	timestamp := time.Now().Format(time.UnixDate)
+	img, err := gg.LoadImage(path)
+	if err != nil {
+		return
+	}
+	b := img.Bounds()
+	dc := gg.NewContext(b.Dx(), b.Dy())
+
+	dc.SetRGB(1, 1, 1)
+	dc.Clear()
+	dc.SetRGB(1, 0, 0)
+	font, err := truetype.Parse(goregular.TTF)
+	if err != nil {
+		panic("")
+	}
+	face := truetype.NewFace(font, &truetype.Options{
+		Size: 200,
+	})
+	dc.SetFontFace(face)
+
+	dc.DrawImage(img, 0, 0)
+	dc.DrawStringAnchored(timestamp, 50.0, float64(b.Dy()-50), 0.0, 0.0)
+
+	out, err := os.Create(outputPathJpeg)
+	if err != nil {
+		return
+	}
+	defer out.Close()
+
+	jpeg.Encode(out, dc.Image(), &jpeg.Options{jpeg.DefaultQuality})
+
+	return
 }
 
 func printCameras(cam interface{}) {

@@ -104,7 +104,9 @@ func (cam *GphotoCamera) capture(timestamp string) error {
 		return err
 	}
 	if _, err := os.Stat(filePathJpeg); !os.IsNotExist(err) {
-		CopyFile(filePathJpeg, lastJpegPath)
+		if err = TimestampLast(filePathJpeg, lastJpegPath); err != nil {
+			return err
+		}
 	}
 	return nil
 }

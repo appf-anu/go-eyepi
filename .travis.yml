@@ -21,6 +21,9 @@ before_script:
   - go get -u golang.org/x/image/tiff
   - go get -u golang.org/x/image/tiff/lzw
   - go get github.com/golang/lint/golint
+  - go get -u github.com/fogleman/gg
+  - go get -u golang.org/x/image/font/gofont/goregular
+
 
 script:
   - golint -set_exit_status

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-env GOOS=linux go test ./rpi-sshsign
-env GOOS=linux go build -o bin/rpi-sshsign ./rpi-sshsign
+env GOOS=linux GOARCH=arm GOARM=7 go test ./rpi-sshsign
+env GOOS=linux GOARCH=arm GOARM=7 go build -o bin/rpi-sshsign ./rpi-sshsign
 cp bin/rpi-sshsign ansible/files/rpi-sshsign
 env GOOS=linux go test ./openvpn-mongopass
 go build -o bin/openvpn-mongopass ./openvpn-mongopass

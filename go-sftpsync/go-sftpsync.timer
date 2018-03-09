@@ -1,0 +1,9 @@
+[Unit]
+Description=run ssh sign every hour
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=60m
+
+[Install]
+WantedBy=timers.target

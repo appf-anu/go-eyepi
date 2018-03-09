@@ -1,0 +1,10 @@
+[Unit]
+Description=Signature generator for openvpn with ssh keys
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/go-sftpsync
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target

@@ -133,8 +133,11 @@ func (cam *RaspberryPiCamera) capture(timestamp string) error {
 			return err
 		}
 
-		if err = CopyFile(filePath, filePathLast); err != nil {
-			return err
+		if fileType == "jpeg" {
+			// we actually dont want to fail here or anywhere
+			TimestampLast(filePath, filePathLast)
+		} else {
+			CopyFile(filePath, filePathLast)
 		}
 
 	}
