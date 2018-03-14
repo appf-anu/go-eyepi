@@ -42,6 +42,12 @@
     url: "https://gist.githubusercontent.com/gdunstone/e2d009fd6169c1b675bf9be6277f13d2/raw/fe8796b70f1068c332a0e97d5d781659bca3b983/vpn.conf"
     dest: /etc/openvpn/client/vpn.conf
 
+
+- name: upload openvpn-client service
+  copy:
+    src: openvpn-client@.service
+    dest: /usr/lib/systemd/system/openvpn-client@.service
+
 - name: Start openvpn systemd service
   systemd:
     name: openvpn-client@vpn

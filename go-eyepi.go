@@ -81,7 +81,7 @@ func TimestampLast(path, outputPathJpeg string) (err error) {
 		panic("")
 	}
 	face := truetype.NewFace(font, &truetype.Options{
-		Size: 200,
+		Size: 150,
 	})
 	dc.SetFontFace(face)
 
