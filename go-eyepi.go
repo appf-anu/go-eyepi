@@ -13,8 +13,9 @@ import (
 	"log/syslog"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
+	"sync"
+
 )
 
 //CONFIGPATH system path to configuration file
@@ -25,7 +26,7 @@ var (
 	warnLog *log.Logger
 	errLog  *log.Logger
 	config  *GlobalConfig
-	mutex   *sync.Mutex
+	mutex *sync.Mutex
 )
 
 //GlobalConfig type to support the configuration of all cameras managed
@@ -110,7 +111,7 @@ func printCameras(cam interface{}) {
 	}
 }
 
-func createCameras() {
+func reloadCameraConfig() {
 	hostname, err := os.Hostname()
 	if err != nil {
 		panic(err)
@@ -152,7 +153,6 @@ func createCameras() {
 		if cam.Interval.Duration <= time.Duration(time.Second) {
 			config.Gphoto[name].Interval.Duration = time.Duration(time.Minute * 10)
 		}
-		config.Gphoto[name].mutex = mutex
 		port, err := cam.resetUsb()
 		if err != nil {
 			cam.Enable = false
@@ -189,9 +189,8 @@ func init() {
 	warningLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
 	errLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
 	initLogging(infoLogger, warningLogger, errLogger)
-
 	mutex = &sync.Mutex{}
-	createCameras()
+	reloadCameraConfig()
 }
 
 func main() {
@@ -202,10 +201,13 @@ func main() {
 
 	stopChan := make(chan bool)
 	timingChan := make(chan telegraf.Measurement)
+
 	for _, cam := range config.Gphoto {
 		go cam.RunWait(stopChan, timingChan)
 	}
+
 	go config.RpiCamera.RunWait(stopChan, timingChan)
+
 	usbChan := make(chan bool, 1)
 
 	go RunWaitUdev(usbChan)
@@ -223,13 +225,11 @@ func main() {
 			if telegrafClientErr == nil {
 				telegrafClient.Write(measurement)
 			}
-
 		case <-usbChan:
 			for range config.Gphoto {
 				stopChan <- true
 			}
-			stopChan <- true
-			createCameras()
+			reloadCameraConfig()
 			for len(stopChan) > 0 {
 				<-stopChan
 			}
@@ -242,14 +242,13 @@ func main() {
 			for _, cam := range config.Gphoto {
 				go cam.RunWait(stopChan, timingChan)
 			}
-			go config.RpiCamera.RunWait(stopChan, timingChan)
 		case event := <-watcher.Events:
 			if event.Op&fsnotify.Write == fsnotify.Write {
 				for range config.Gphoto {
 					stopChan <- true
 				}
 				stopChan <- true
-				createCameras()
+				reloadCameraConfig()
 				for len(stopChan) > 0 {
 					<-stopChan
 				}

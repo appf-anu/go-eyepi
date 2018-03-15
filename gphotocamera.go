@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -25,7 +24,6 @@ type GphotoCamera struct {
 	Interval                    duration
 	FilenamePrefix, OutputDir   string
 	GphotoSerialNumber, USBPort string
-	mutex                       *sync.Mutex
 }
 
 //RunWait start the camera on an interval capture
@@ -55,7 +53,7 @@ func (cam *GphotoCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.M
 	for {
 		select {
 		case t := <-ticker.C:
-			if cam.Enable {
+			if cam.Enable == true{
 				start := time.Now()
 				// Truncate the current time to the interval duration
 				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
@@ -69,10 +67,12 @@ func (cam *GphotoCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.M
 					captureTime <- m
 					infoLog.Printf("capture took %s\n", time.Since(start))
 				}
+
 			}
 		case <-stop:
 			return
 		}
+
 	}
 }
 
@@ -93,21 +93,26 @@ func (cam *GphotoCamera) capture(timestamp string) error {
 	cmd := cam.createCaptureCommand(filePath)
 
 	var outb, errb bytes.Buffer
+	defer outb.Reset()
+	defer errb.Reset()
 	cmd.Stdout = &outb
 	cmd.Stderr = &errb
-	cam.mutex.Lock()
+
+	mutex.Lock()
 	err = cmd.Run()
-	cam.mutex.Unlock()
+	mutex.Unlock()
 
 	if err != nil {
 		errLog.Println(errb.String())
 		return err
 	}
+
 	if _, err := os.Stat(filePathJpeg); !os.IsNotExist(err) {
 		if err = TimestampLast(filePathJpeg, lastJpegPath); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -116,9 +121,9 @@ func (cam *GphotoCamera) checkUSBPort(port string) (bool, error) {
 	command := exec.Command("gphoto2", "--debug-loglevel=error",
 		usbPortArg,
 		"--get-config=serialnumber")
-	cam.mutex.Lock()
+	mutex.Lock()
 	output, err := command.CombinedOutput()
-	cam.mutex.Unlock()
+	mutex.Unlock()
 
 	if err != nil {
 		errLog.Println("error checking usb port: ", string(output))
@@ -137,9 +142,10 @@ func (cam *GphotoCamera) checkUSBPort(port string) (bool, error) {
 
 func (cam *GphotoCamera) getAllUsbPorts() ([]string, error) {
 	command := exec.Command("gphoto2", "--debug-loglevel=error", "--auto-detect")
-	cam.mutex.Lock()
+	mutex.Lock()
 	output, err := command.CombinedOutput()
-	cam.mutex.Unlock()
+	mutex.Unlock()
+
 	if err != nil {
 		errLog.Println("error listing usb ports: ", string(output))
 		return []string{}, err
@@ -205,9 +211,9 @@ func (cam *GphotoCamera) RunGphoto2Command(args ...string) (string, error) {
 	}
 
 	args = append([]string{"--debug-loglevel=error", "--port", cam.USBPort}, args...)
-	cam.mutex.Lock()
+	mutex.Lock()
 	command := exec.Command("gphoto2", args...)
-	cam.mutex.Unlock()
+	mutex.Unlock()
 	output, err := command.Output()
 	if err != nil {
 		return string(output), err
