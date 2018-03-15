@@ -55,7 +55,7 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 	for {
 		select {
 		case t := <-ticker.C:
-			if cam.Enable == true {
+			if cam.Enable{
 				start := time.Now()
 				// Truncate the current time to the interval duration
 				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)

@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"time"
 	"sync"
-
 )
 
 //CONFIGPATH system path to configuration file
@@ -27,6 +26,10 @@ var (
 	errLog  *log.Logger
 	config  *GlobalConfig
 	mutex *sync.Mutex
+	// Version and Built are both informational
+	Version string
+	// Built see above
+	Built string
 )
 
 //GlobalConfig type to support the configuration of all cameras managed
@@ -185,10 +188,12 @@ func initLogging(
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 func init() {
+
 	infoLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
 	warningLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
 	errLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
 	initLogging(infoLogger, warningLogger, errLogger)
+	infoLog.Printf("\n\tgo-eyepi v%s\n\tbuilt on %s", Version, Built)
 	mutex = &sync.Mutex{}
 	reloadCameraConfig()
 }

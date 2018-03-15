@@ -75,27 +75,27 @@ var snRegexData = []reTest{
 		"Current: cd6acfa090894f9bbe7b21037a49389b",
 	},
 }
-
-var failsnRegexData = []reTest{
-	{`*** Error ***
-	An error occurred in the io-library ('I/O problem'): No error description available
-
-	*** Error ***
-	An error occurred in the io-library ('I/O problem'): No error description available
-	*** Error (-7: 'I/O problem') ***
-
-	For debugging messages, please use the --debug option.
-	Debugging messages may help finding a solution to your problem.
-	If you intend to send any error or debug messages to the gphoto
-	developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
-	gphoto2 as follows:
-
-		env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --get-config serialnumber --port=usb:001,006
-
-	Please make sure there is sufficient quoting around the arguments.
-	`,
-		""},
-}
+//
+//var failsnRegexData = []reTest{
+//	{`*** Error ***
+//	An error occurred in the io-library ('I/O problem'): No error description available
+//
+//	*** Error ***
+//	An error occurred in the io-library ('I/O problem'): No error description available
+//	*** Error (-7: 'I/O problem') ***
+//
+//	For debugging messages, please use the --debug option.
+//	Debugging messages may help finding a solution to your problem.
+//	If you intend to send any error or debug messages to the gphoto
+//	developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
+//	gphoto2 as follows:
+//
+//		env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --get-config serialnumber --port=usb:001,006
+//
+//	Please make sure there is sufficient quoting around the arguments.
+//	`,
+//		""},
+//}
 
 var usbRegexData = []reMultiTest{
 	{`----------------------------------------------------------
@@ -110,28 +110,28 @@ var usbRegexData = []reMultiTest{
 	Canon EOS 650D                 usb:001,007 `,
 		[][]byte{[]byte("usb:001,6"), []byte("usb:001,007")}},
 }
-
-var failUsbRegexData = []reMultiTest{
-	{
-		`*** Error ***
-		An error occurred in the io-library ('I/O problem'): No error description available
-
-		*** Error ***
-		An error occurred in the io-library ('I/O problem'): No error description available
-		*** Error (-7: 'I/O problem') ***
-
-		For debugging messages, please use the --debug option.
-		Debugging messages may help finding a solution to your problem.
-		If you intend to send any error or debug messages to the gphoto
-		developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
-		gphoto2 as follows:
-
-			env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --get-config serialnumber --port=usb:001,006
-
-		Please make sure there is sufficient quoting around the arguments.
-		`, [][]byte{},
-	},
-}
+//
+//var failUsbRegexData = []reMultiTest{
+//	{
+//		`*** Error ***
+//		An error occurred in the io-library ('I/O problem'): No error description available
+//
+//		*** Error ***
+//		An error occurred in the io-library ('I/O problem'): No error description available
+//		*** Error (-7: 'I/O problem') ***
+//
+//		For debugging messages, please use the --debug option.
+//		Debugging messages may help finding a solution to your problem.
+//		If you intend to send any error or debug messages to the gphoto
+//		developer mailing list <gphoto-devel@lists.sourceforge.net>, please run
+//		gphoto2 as follows:
+//
+//			env LANG=C gphoto2 --debug --debug-logfile=my-logfile.txt --get-config serialnumber --port=usb:001,006
+//
+//		Please make sure there is sufficient quoting around the arguments.
+//		`, [][]byte{},
+//	},
+//}
 
 func TestRegexes(t *testing.T) {
 	for _, regexData := range snRegexData {
