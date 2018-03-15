@@ -23,20 +23,20 @@ var /* const */ testFiles = []string{
 }
 
 func TestTimestampLast(t *testing.T) {
-	output_path_parent := "test-data/output"
+	outputPathParent := "test-data/output"
 
 	for _, path := range testFiles {
-		output_path := filepath.Join(output_path_parent, path)
-		os.MkdirAll(filepath.Dir(output_path), 0755)
-		err := TimestampLast(path, output_path)
+		outputPath := filepath.Join(outputPathParent, path)
+		os.MkdirAll(filepath.Dir(outputPath), 0755)
+		err := TimestampLast(path, outputPath)
 		if err != nil {
 			t.Error(err)
 		}
-		if _, err := os.Stat(output_path); os.IsNotExist(err) {
+		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 			t.Error(err)
 		}
 	}
-	os.RemoveAll(output_path_parent)
+	os.RemoveAll(outputPathParent)
 }
 
 type reTest struct {
