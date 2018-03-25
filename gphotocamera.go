@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mdaffin/go-telegraf"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"bytes"
 )
 
 const getSerialNumberRe = "Current: (\\w+)"
@@ -53,7 +53,7 @@ func (cam *GphotoCamera) RunWait(stop <-chan bool, captureTime chan<- telegraf.M
 	for {
 		select {
 		case t := <-ticker.C:
-			if cam.Enable{
+			if cam.Enable {
 				start := time.Now()
 				// Truncate the current time to the interval duration
 				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
@@ -132,6 +132,10 @@ func (cam *GphotoCamera) checkUSBPort(port string) (bool, error) {
 	defer mutex.Unlock()
 
 	stdout, err := command.StdoutPipe()
+	if err != nil {
+		errLog.Println("error listing usb ports")
+		return false, err
+	}
 
 	err = command.Start()
 
@@ -143,7 +147,7 @@ func (cam *GphotoCamera) checkUSBPort(port string) (bool, error) {
 	var buf bytes.Buffer
 	defer buf.Reset()
 
-	if _, err = buf.ReadFrom(stdout); err != nil{
+	if _, err = buf.ReadFrom(stdout); err != nil {
 		return false, err
 	}
 
@@ -172,7 +176,10 @@ func (cam *GphotoCamera) getAllUsbPorts() ([]string, error) {
 	defer mutex.Unlock()
 
 	stdout, err := command.StdoutPipe()
-
+	if err != nil {
+		errLog.Println("error listing usb ports")
+		return []string{}, err
+	}
 	err = command.Start()
 
 	if err != nil {
@@ -183,7 +190,7 @@ func (cam *GphotoCamera) getAllUsbPorts() ([]string, error) {
 	var buf bytes.Buffer
 	defer buf.Reset()
 
-	if _, err = buf.ReadFrom(stdout); err != nil{
+	if _, err = buf.ReadFrom(stdout); err != nil {
 		return []string{}, err
 	}
 	output := buf.Bytes()

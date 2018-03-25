@@ -55,7 +55,7 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 	for {
 		select {
 		case t := <-ticker.C:
-			if cam.Enable{
+			if cam.Enable {
 				start := time.Now()
 				// Truncate the current time to the interval duration
 				timestamp := t.Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
@@ -113,7 +113,6 @@ func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
 //	return output, err
 //}
 
-
 func (cam *RaspberryPiCamera) capture(timestamp string) error {
 	if len(cam.ImageTypes) == 0 {
 		cam.ImageTypes = []string{"jpg", "tiff"}
@@ -123,7 +122,7 @@ func (cam *RaspberryPiCamera) capture(timestamp string) error {
 		var err error
 		filePath := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.%s", cam.FilenamePrefix, timestamp, fileType))
 		filePathLast := filepath.Join(cam.OutputDir, fmt.Sprintf("last_image.%s", fileType))
-		if stringInSlice(fileType ,[]string{"jpeg","jpg"}) {
+		if stringInSlice(fileType, []string{"jpeg", "jpg"}) {
 			cam.args = &RaspiStillArgs{Encoding: "jpg", Quality: 100, Brightness: defBrightness}
 			image, err = cam.getImage()
 			if err != nil {
@@ -173,7 +172,6 @@ func (cam *RaspberryPiCamera) capture(timestamp string) error {
 	}
 	return nil
 }
-
 
 //func (cam *RaspberryPiCamera) capture(timestamp string) error {
 //	// the filepath must resolve with %C for cameras that return multiple images (like canons jpg+raw)

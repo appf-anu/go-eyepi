@@ -1,4 +1,0 @@
-- name: Rewrite /boot/config.txt
-  template:
-    src: templates/config.txt.j2
-    dest: /boot/config.txt

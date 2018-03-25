@@ -3,20 +3,20 @@ package main
 import (
 	"github.com/BurntSushi/toml"
 	"github.com/fogleman/gg"
+	"github.com/fsnotify/fsnotify"
 	"github.com/golang/freetype/truetype"
 	"github.com/mdaffin/go-telegraf"
-	"golang.org/x/image/font/gofont/goregular"
 	_ "golang.org/x/image/bmp" // import for TimestampLast
+	"golang.org/x/image/font/gofont/goregular"
 	_ "golang.org/x/image/tiff"
 	"image/jpeg"
-	"github.com/fsnotify/fsnotify"
 	"io"
 	"log"
 	"log/syslog"
 	"os"
 	"path/filepath"
-	"time"
 	"sync"
+	"time"
 	//"github.com/pkg/profile"
 )
 
@@ -28,7 +28,7 @@ var (
 	warnLog *log.Logger
 	errLog  *log.Logger
 	config  *GlobalConfig
-	mutex *sync.Mutex
+	mutex   *sync.Mutex
 	// Version and Built are both informational
 	Version string
 	// Built see above

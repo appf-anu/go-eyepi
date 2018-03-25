@@ -1,4 +1,0 @@
-- name: Install python packages
-  pip: "name={{item}} executable='pip' state=latest"
-  with_items:
-    - "{{modules}}"

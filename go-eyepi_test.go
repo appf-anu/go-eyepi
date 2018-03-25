@@ -75,6 +75,7 @@ var snRegexData = []reTest{
 		"Current: cd6acfa090894f9bbe7b21037a49389b",
 	},
 }
+
 //
 //var failsnRegexData = []reTest{
 //	{`*** Error ***
@@ -110,6 +111,7 @@ var usbRegexData = []reMultiTest{
 	Canon EOS 650D                 usb:001,007 `,
 		[][]byte{[]byte("usb:001,6"), []byte("usb:001,007")}},
 }
+
 //
 //var failUsbRegexData = []reMultiTest{
 //	{
