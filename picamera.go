@@ -1,12 +1,12 @@
 package main
 
 import (
+	//"os"
+	// "github.com/garyhouston/exif44"
+	// "github.com/garyhouston/tiff66"
 	"bufio"
 	"bytes"
 	"fmt"
-	// "os"
-	// "github.com/garyhouston/exif44"
-	// "github.com/garyhouston/tiff66"
 	"github.com/mdaffin/go-telegraf"
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
@@ -76,6 +76,7 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 	}
 }
 
+// is this function whats causing memory errors?
 func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
 	if cam.args == nil {
 		cam.args = NewRaspistillArgs()
@@ -83,6 +84,35 @@ func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
 	cmd := createCommand(cam.args)
 	return cmd.Output()
 }
+
+// does this work the same way?
+//func (cam *RaspberryPiCamera) getImage() ([]byte, error) {
+//	if cam.args == nil {
+//		cam.args = NewRaspistillArgs()
+//	}
+//	cmd := createCommand(cam.args)
+//	stdout, err := cmd.StdoutPipe()
+//
+//	if err := cmd.Start(); err != nil {
+//		return []byte{}, err
+//	}
+//
+//	var buf bytes.Buffer
+//	defer buf.Reset()
+//	_, err = buf.ReadFrom(stdout)
+//	if err != nil{
+//		return []byte{}, err
+//	}
+//
+//	output := buf.Bytes()
+//
+//	if err := cmd.Wait(); err != nil {
+//		return []byte{}, err
+//	}
+//
+//	return output, err
+//}
+
 
 func (cam *RaspberryPiCamera) capture(timestamp string) error {
 	if len(cam.ImageTypes) == 0 {
@@ -133,7 +163,7 @@ func (cam *RaspberryPiCamera) capture(timestamp string) error {
 			return err
 		}
 
-		if fileType == "jpeg" {
+		if fileType == "jpg" {
 			// we actually dont want to fail here or anywhere
 			TimestampLast(filePath, filePathLast)
 		} else {
@@ -143,6 +173,37 @@ func (cam *RaspberryPiCamera) capture(timestamp string) error {
 	}
 	return nil
 }
+
+
+//func (cam *RaspberryPiCamera) capture(timestamp string) error {
+//	// the filepath must resolve with %C for cameras that return multiple images (like canons jpg+raw)
+//	filePath := filepath.Join(cam.OutputDir, fmt.Sprintf("%s_%s.jpg", cam.FilenamePrefix, timestamp))
+//	lastJpegPath := filepath.Join(cam.OutputDir, fmt.Sprintf("last_image.jpg"))
+//
+//	cmd := cam.createCaptureCommand(filePath)
+//
+//	err := cmd.Run()
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+//		if err = TimestampLast(filePath, lastJpegPath); err != nil {
+//			return err
+//		}
+//	}
+//
+//	return nil
+//}
+//
+//func (cam *RaspberryPiCamera) createCaptureCommand(targetFilename string) *exec.Cmd {
+//	filenameArg := fmt.Sprintf("--output=%s", targetFilename)
+//	command := exec.Command("/opt/vc/bin/raspistill",
+//		"-o ", filenameArg)
+//
+//	return command
+//}
 
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {

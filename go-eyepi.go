@@ -6,8 +6,10 @@ import (
 	"github.com/golang/freetype/truetype"
 	"github.com/mdaffin/go-telegraf"
 	"golang.org/x/image/font/gofont/goregular"
-	"gopkg.in/fsnotify.v1"
+	_ "golang.org/x/image/bmp" // import for TimestampLast
+	_ "golang.org/x/image/tiff"
 	"image/jpeg"
+	"github.com/fsnotify/fsnotify"
 	"io"
 	"log"
 	"log/syslog"
@@ -15,6 +17,7 @@ import (
 	"path/filepath"
 	"time"
 	"sync"
+	//"github.com/pkg/profile"
 )
 
 //CONFIGPATH system path to configuration file
@@ -188,7 +191,6 @@ func initLogging(
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 func init() {
-
 	infoLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
 	warningLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
 	errLogger, _ := syslog.New(syslog.LOG_NOTICE, "eyepi")
@@ -199,6 +201,8 @@ func init() {
 }
 
 func main() {
+	//defer profile.Start(profile.MemProfile).Stop()
+
 	telegrafClient, telegrafClientErr := telegraf.NewUnix("/tmp/telegraf.sock")
 	if telegrafClientErr != nil {
 		errLog.Println("Cannot create telegraf client QWTF!!!?: ", telegrafClientErr)

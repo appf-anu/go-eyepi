@@ -2,12 +2,14 @@
 
 VERSION=`git describe --tags`
 BUILT=`date +%FT%T%z`
-echo "$VERSION"
 env GOOS=linux GOARCH=arm GOARM=7 go test ./rpi-sshsign
+echo "Building rpi-sshsign"
 env GOOS=linux GOARCH=arm GOARM=7 go build -o bin/rpi-sshsign ./rpi-sshsign
-cp bin/rpi-sshsign ansible/files/rpi-sshsign
+echo "Testing openvpn-mongopass"
 env GOOS=linux go test ./openvpn-mongopass
-go build -o bin/openvpn-mongopass ./openvpn-mongopass
+echo "Building openvpn-mongopass"
+env GOOS=linux go build -o bin/openvpn-mongopass ./openvpn-mongopass
+echo "Testing go-eyepi"
 env GOOS=linux go test .
-env GOOS=linux GOARCH=arm GOARM=7 go build -a -o bin/go-eyepi -ldflags "-X main.Version=$VERSION -X main.Built=$BUILT" .
-cp bin/go-eyepi ansible/files/go-eyepi
+echo "Building go-eyepi"
+env CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -i -a -o bin/go-eyepi -ldflags "-X main.Version=$VERSION -X main.Built=$BUILT" .
