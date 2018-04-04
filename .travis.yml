@@ -14,7 +14,7 @@ before_script:
   - go get golang.org/x/crypto/ssh
   - go get gopkg.in/mgo.v2
   - go get github.com/BurntSushi/toml
-  - go get gopkg.in/fsnotify.v1
+  - github.com/fsnotify/fsnotify
   - go get github.com/garyhouston/tiff66
   - go get github.com/garyhouston/exif44
   - go get -u golang.org/x/image/bmp
