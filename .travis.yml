@@ -32,8 +32,8 @@ script:
   - "./build.sh"
 
 before_deploy:
-  - git config --local user.name "zarlo"
-  - git config --local user.email "zarlo5899@gmail.com"
+  - git config --local user.name "appf-anu"
+  - git config --local user.email "appf.anu@gmail.com"
 
 deploy:
   provider: releases
