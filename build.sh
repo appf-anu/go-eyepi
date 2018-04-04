@@ -2,6 +2,10 @@
 
 VERSION=`git describe --tags`
 BUILT=`date +%FT%T%z`
+
+mkdir /etc/eyepi/
+touch /etc/eyepi/eyepi.conf
+
 env GOOS=linux GOARCH=arm GOARM=7 go test ./rpi-sshsign
 echo "Building rpi-sshsign"
 env GOOS=linux GOARCH=arm GOARM=7 go build -o bin/rpi-sshsign ./rpi-sshsign
