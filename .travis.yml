@@ -5,6 +5,8 @@ go:
 
 install: true
 
+sudo: true
+
 #dont email me i dont like spam
 notifications:
   email: false
