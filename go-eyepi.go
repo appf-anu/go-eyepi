@@ -21,7 +21,7 @@ import (
 )
 
 //CONFIGPATH system path to configuration file
-const CONFIGPATH = "/etc/go-eyepi/go-eyepi.conf"
+const CONFIGPATH = "/etc/eyepi/eyepi.conf"
 
 var (
 	infoLog *log.Logger
@@ -100,9 +100,7 @@ func TimestampLast(path, outputPathJpeg string) (err error) {
 		return
 	}
 	defer out.Close()
-
-	jpeg.Encode(out, dc.Image(), &jpeg.Options{jpeg.DefaultQuality})
-
+	err = jpeg.Encode(out, dc.Image(), &jpeg.Options{jpeg.DefaultQuality})
 	return
 }
 
@@ -141,7 +139,7 @@ func reloadCameraConfig() {
 		config.RpiCamera.FilenamePrefix = hostname + "-" + "Picam"
 	}
 	if config.RpiCamera.OutputDir == "" {
-		config.RpiCamera.OutputDir = filepath.Join("/var/lib/go-eyepi/", config.RpiCamera.FilenamePrefix)
+		config.RpiCamera.OutputDir = filepath.Join("/var/lib/eyepi/", config.RpiCamera.FilenamePrefix)
 	}
 	if config.RpiCamera.Interval.Duration <= time.Duration(time.Second) {
 		config.RpiCamera.Interval.Duration = time.Duration(time.Minute * 10)
@@ -154,7 +152,7 @@ func reloadCameraConfig() {
 			config.Gphoto[name].FilenamePrefix = hostname + "-" + name
 		}
 		if cam.OutputDir == "" {
-			config.Gphoto[name].OutputDir = filepath.Join("/var/lib/go-eyepi/", config.Gphoto[name].FilenamePrefix)
+			config.Gphoto[name].OutputDir = filepath.Join("/var/lib/eyepi/", config.Gphoto[name].FilenamePrefix)
 		}
 		if cam.Interval.Duration <= time.Duration(time.Second) {
 			config.Gphoto[name].Interval.Duration = time.Duration(time.Minute * 10)

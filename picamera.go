@@ -40,6 +40,8 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 	}
 
 	ticker := time.NewTicker(cam.Interval.Duration)
+	defer ticker.Stop()
+
 	start := time.Now()
 	timestamp := time.Now().Truncate(cam.Interval.Duration).Format(config.TimestampFormat)
 	err := cam.capture(timestamp)
@@ -50,7 +52,7 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 		m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
 		m.AddTag("camera_name", cam.FilenamePrefix)
 		captureTime <- m
-		infoLog.Printf("capture took %s\n", time.Since(start))
+		infoLog.Printf("%s capture took %s\n",cam.FilenamePrefix, time.Since(start))
 	}
 	for {
 		select {
@@ -67,7 +69,7 @@ func (cam *RaspberryPiCamera) RunWait(stop <-chan bool, captureTime chan<- teleg
 					m := telegraf.MeasureFloat64("camera", "timing_capture_s", time.Since(start).Seconds())
 					m.AddTag("camera_name", cam.FilenamePrefix)
 					captureTime <- m
-					infoLog.Printf("capture took %s\n", time.Since(start))
+					infoLog.Printf("%s capture took %s\n", cam.FilenamePrefix, time.Since(start))
 				}
 			}
 		case <-stop:

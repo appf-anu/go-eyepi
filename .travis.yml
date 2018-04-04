@@ -32,7 +32,6 @@ script:
 before_deploy:
   - git config --local user.name "zarlo"
   - git config --local user.email "zarlo5899@gmail.com"
-  - tar -zcvf ansible.tar.gz ansible
 
 deploy:
   provider: releases
@@ -40,7 +39,6 @@ deploy:
   file_glob: true
   file:
     - "bin/*"
-    - "ansible.tar.gz"
   name: Release $TRAVIS_TAG
   skip_cleanup: true
   on:
